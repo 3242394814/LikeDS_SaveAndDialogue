@@ -75,7 +75,7 @@ if GLOBAL.TheNet:GetIsServer() and not GLOBAL.TheShard:IsSecondary() then
     end
 
     inst:DoPeriodicTask(min*60,function()
-        -- inst:PushEvent("ms_save") -- 保存存档！
+        inst:PushEvent("ms_save") -- 保存存档！
     end)
 
     -- 保存前的提示
