@@ -21,7 +21,7 @@ local function zh_en(zh, en)  -- Other languages don't work
 end
 
 name = zh_en("自定义保存间隔&黄昏时人物说台词(like DS)","Custom Save Interval & Character Dialogue at Dusk (like DS)")
-version = "1.0.1"
+version = "1.0.2"
 description = zh_en(
 [[·现在 自动存档的时间不再是每天早上，而是按你设置的保存间隔来保存，
 默认设置是8分钟 效果就像饥荒单机版一样

@@ -25,11 +25,15 @@ elseif not GLOBAL.STRINGS.SAVE_ANNOUNCE[lang] then -- 找不到对应语言的�
     lang = "en"
 end
 
--- 保存前提示
-AddClientModRPCHandler("ANNOUNCE", "save", function(str)
+local function announce_save(str)
     if GLOBAL.ThePlayer and GLOBAL.ThePlayer.prefab then
         GLOBAL.ThePlayer.components.talker:Say(str)
     end
+end
+
+-- 保存前提示
+AddClientModRPCHandler("ANNOUNCE", "save", function(str)
+    announce_save(str)
 end)
 
 AddShardModRPCHandler("ANNOUNCE", "shard", function(shardId,str) -- 多层世界 保存提示数据传输
@@ -53,12 +57,13 @@ AddPrefabPostInit("world",function(inst)
         end
     end
     if GLOBAL.TheNet:GetIsServer() then
-        if inst:HasTag("cave") then return end -- 洞穴世界不进行黄昏宣告
-        inst:WatchWorldState("phase", player_announce_dusk) -- 监听世界状态
+        if not inst:HasTag("cave") then -- 洞穴世界不进行黄昏宣告
+            inst:WatchWorldState("phase", player_announce_dusk) -- 监听世界状态
+        end
     end
 
     -- 服务器自动保存部分
-    if GLOBAL.TheNet:GetIsServer() and GLOBAL.TheShard:IsMaster() then
+    if GLOBAL.TheNet:IsDedicated() and GLOBAL.TheShard:IsMaster() or not GLOBAL.TheNet:IsDedicated() then
         inst:DoTaskInTime(0, function(inst)
             inst:PushEvent("ms_setautosaveenabled", false) -- 关闭DST自动保存功能
         end)
@@ -77,13 +82,19 @@ AddPrefabPostInit("world",function(inst)
         -- 保存前的提示
         local TIME = GetModConfigData("save_prompt")
         local SAVE_ANNOUNCE = GLOBAL.STRINGS.SAVE_ANNOUNCE[lang]:format(TIME) -- 提示内容
-        if GetModConfigData("save_time") ~= false and GetModConfigData("save_prompt") ~= false and GetModConfigData("save_time") * 60 > GetModConfigData("save_prompt") then
+        if GetModConfigData("save_time") and
+            GetModConfigData("save_prompt") and
+            GetModConfigData("save_time") * 60 > GetModConfigData("save_prompt")
+        then
             inst:DoTaskInTime(min * 60 - TIME, function(inst) -- 首次执行
                 SendModRPCToClient(CLIENT_MOD_RPC["ANNOUNCE"]["save"], nil, SAVE_ANNOUNCE)
-                SendModRPCToShard(GetShardModRPC("ANNOUNCE","shard"),nil, SAVE_ANNOUNCE)
+                SendModRPCToShard(SHARD_MOD_RPC["ANNOUNCE"]["shard"], nil, SAVE_ANNOUNCE)
+                announce_save(SAVE_ANNOUNCE)
+
                 inst:DoPeriodicTask(min*60,function() -- 循环执行
                     SendModRPCToClient(CLIENT_MOD_RPC["ANNOUNCE"]["save"], nil, SAVE_ANNOUNCE)
-                    SendModRPCToShard(GetShardModRPC("ANNOUNCE","shard"),nil, SAVE_ANNOUNCE)
+                    SendModRPCToShard(SHARD_MOD_RPC["ANNOUNCE"]["shard"], nil, SAVE_ANNOUNCE)
+                    announce_save(SAVE_ANNOUNCE)
                 end)
             end)
         end
