@@ -57,13 +57,15 @@ AddPrefabPostInit("world",function(inst)
         end
     end
     if GLOBAL.TheNet:GetIsServer() then
-        if not inst:HasTag("cave") then -- 洞穴世界不进行黄昏宣告
+        if not inst:HasTag("cave") and GetModConfigData("dusk_announce") then -- 开启模组设置并且不是洞穴才宣告
             inst:WatchWorldState("phase", player_announce_dusk) -- 监听世界状态
         end
     end
 
     -- 服务器自动保存部分
-    if GLOBAL.TheNet:IsDedicated() and GLOBAL.TheShard:IsMaster() or not GLOBAL.TheNet:IsDedicated() then
+    if GLOBAL.TheNet:IsDedicated() and GLOBAL.TheShard:IsMaster() or -- 专用服务器+主世界
+        not (GLOBAL.TheNet:IsDedicated() or GLOBAL.TheNet:GetIsClient()) -- 非专用服务器（玩家开的服，可能有独行长路）
+    then
         inst:DoTaskInTime(0, function(inst)
             inst:PushEvent("ms_setautosaveenabled", false) -- 关闭DST自动保存功能
         end)
